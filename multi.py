@@ -1,0 +1,184 @@
+import tensorflow as tf
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+import sklearn.metrics as sklm
+from datetime import datetime
+
+RANDOM_SEED = 193
+tf.set_random_seed(RANDOM_SEED)
+
+
+def init_weights(shape, name):
+    weights = tf.random_normal(shape, stddev=0.1)
+    return tf.Variable(weights, name=name)
+
+
+def forwardprop(X, w_1, b_1, w_2, b_2):
+    h=tf.nn.relu(tf.add(tf.matmul(X,w_1), b_1))
+    yhat=tf.add(tf.matmul(h,w_2), b_2)
+    return yhat
+
+
+def Tlinear(S, w_t):
+    w=tf.transpose([w_t[1:,0]])
+    tl=tf.add(tf.matmul(S, w), w_t[0,0])
+    return tl
+
+
+def Threshold(y_true, score):
+    nt,lt=score.shape
+    thresh=np.zeros(nt)
+    f1t=0
+    for i in range(nt): #range(nt):
+        t_candidate=np.array([0,1])
+        t_candidate=np.append(t_candidate, score[i,:])
+        for j in range(lt+2):
+            f1t_j=sklm.f1_score(y_true[i, :], Predict(score[i,:], t_candidate[j]), average='micro')
+            if f1t_j>f1t:
+                f1t=f1t_j
+                thresh[i]=t_candidate[j]
+    return thresh
+
+
+def Predict(xscore, threshold):
+    lp=len(xscore)
+    pred=np.ones(lp)
+    for j in range(lp):
+        if xscore[j]<threshold:
+            pred[j]=0
+    return pred
+
+
+
+path='/home/machinelearningstation/PycharmProjects/CSC project'
+df=pd.read_table(path+'/data/bookmarks.dat', delimiter=',', header=None, skiprows=2362)
+label_num=208
+all_precision=[]
+all_recall=[]
+all_f1=[]
+
+print("%s", str(datetime.now()))
+
+target = df[df.columns[-label_num:]].astype(int)
+data=df.drop(df.columns[-label_num:],axis=1)
+print('X shape: '+str(data.shape))
+print('Y shape: '+str(target.shape))
+
+all_X=data
+
+all_Y=pd.DataFrame.as_matrix(target)
+train_size=0.7
+train_X, test_X, train_Y, test_Y = train_test_split(all_X, all_Y, test_size=1-train_size, random_state=RANDOM_SEED)
+
+x_size=train_X.shape[1]
+h_size=5000
+y_size=train_Y.shape[1]
+t_size=1
+
+X=tf.placeholder("float", shape=[None, x_size], name='X')
+Y=tf.placeholder("float", shape=[None, y_size], name='Y')
+S=tf.placeholder('float', shape=[None, y_size], name='S')
+T=tf.placeholder('float', shape=[None, t_size], name='T')
+
+w_1=init_weights((x_size,h_size), 'w_1')
+b_1=init_weights((1,h_size),'b_1')
+w_2=init_weights((h_size,y_size), 'w_2')
+b_2=init_weights((1,y_size),'b_2')
+w_t=init_weights((y_size+1, t_size), 'w_t')
+
+yhat=forwardprop(X, w_1, b_1, w_2, b_2)
+t=Tlinear(S, w_t)
+
+cost_s=tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=yhat))
+cost_t=tf.reduce_mean(tf.pow(Tlinear(S, w_t)-T, 2))
+
+updates_s=tf.train.AdamOptimizer(0.01).minimize(cost_s, name='Adam_LabelScores')
+updates_t=tf.train.AdamOptimizer(0.01).minimize(cost_t, name='Adam_Thresholds')
+
+sess=tf.Session()
+init=tf.global_variables_initializer()
+sess.run(init)
+
+J0s = 0.00
+J1s = 10.00
+epoch=1
+tolerance=1e-6
+batch_size=10000
+while tolerance <= abs(J0s - J1s) and epoch<10000:
+    J0s=J1s
+    for i in range(len(train_X)/batch_size):
+        sess.run(updates_s,feed_dict={X:train_X[batch_size*i:batch_size*(i+1)],
+                                      Y:train_Y[batch_size*i:batch_size*(i+1)]})
+
+    J1s1=sess.run(cost_s, feed_dict={X:train_X[:len(train_X)/10],Y:train_Y[:len(train_X)/10]})
+    J1s2=sess.run(cost_s, feed_dict={X:train_X[len(train_X)*9/10:],Y:train_Y[len(train_X)*9/10:]})
+    J1s=J1s1+J1s2
+    epoch += 1
+    print('score epoch= '+str(epoch)+', partial loss='+str(J1s))
+
+train_yhat=np.zeros((len(train_X),y_size))
+for i in range(len(train_X)/batch_size):
+    train_yhat[batch_size*i:batch_size*(i+1)] = sess.run(yhat, feed_dict={X: train_X[batch_size*i:batch_size*(i+1)],
+                                          Y: train_Y[batch_size*i:batch_size*(i+1)]})
+
+train_yhat[(len(train_X)/batch_size+1)*batch_size:]=sess.run(yhat, feed_dict={X: train_X[(len(train_X)/batch_size+1)*batch_size:],
+                                          Y: train_Y[(len(train_X)/batch_size+1)*batch_size:]})
+
+print(train_yhat)
+
+train_t=Threshold(train_Y, train_yhat).reshape((train_X.shape[0], t_size))
+
+J0t=0.00
+J1t=10.00
+epoch=1
+tolerance=1e-6
+batch_size=10000
+while abs(J1t-J0t)>=tolerance and epoch<10000:
+    J0t=J1t
+    for i in range(len(train_X)/batch_size):
+        sess.run(updates_t,feed_dict={S:train_yhat[batch_size*i:batch_size*(i+1)],
+                                      T:train_t[batch_size*i:batch_size*(i+1)]})
+    J1t1=sess.run(cost_t, feed_dict={S:train_yhat[:len(train_X)/10],T:train_t[:len(train_X)/10]})
+    J1t2=sess.run(cost_t, feed_dict={S:train_yhat[len(train_X)*9/10:],T:train_t[len(train_X)*9/10:]})
+    J1t=J1t1+J1t2
+    epoch += 1
+    print('thresh epoch= '+str(epoch)+', partial loss='+str(J1t))
+
+
+test_yhat=np.zeros((len(test_X),y_size))
+for i in range(len(test_X)/batch_size):
+    test_yhat[batch_size*i:batch_size*(i+1)] = sess.run(yhat, feed_dict={X: test_X[batch_size*i:batch_size*(i+1)],
+                                          Y: test_Y[batch_size*i:batch_size*(i+1)]})
+
+test_yhat[(len(test_X)/batch_size+1)*batch_size:]=sess.run(yhat, feed_dict={X: test_X[(len(test_X)/batch_size+1)*batch_size:],
+                                          Y: test_Y[(len(test_X)/batch_size+1)*batch_size:]})
+test_t=sess.run(t, feed_dict={S:test_yhat})
+y_predict=np.zeros((len(test_yhat),y_size))
+for i in range(len(test_yhat)):
+    y_predict[i]=Predict(test_yhat[i], test_t[i])
+y_true = test_Y
+
+precison=sklm.precision_score(y_true, y_predict, average='micro')
+recall=sklm.recall_score(y_true, y_predict, average='micro')
+f1=sklm.f1_score(y_true, y_predict, average='micro')
+
+print(" precision = %.2f%%, recall =%.2f%%, f1_score=%.2f%% "
+              % ( 100.* precison, 100.*recall, 100.*f1))
+
+"""
+all_precision.append(precison)
+all_recall.append(recall)
+all_f1.append(f1)
+"""
+
+sess.close()
+
+print("%s", str(datetime.now()))
+
+""""
+print("mean(precision)= %.2f%%, mean(recall)= %.2f%%, mean(f1_score)= %.2f%%"
+      % ( 100.*np.mean(all_precision), 100.*np.mean(all_recall), 100.*np.mean(all_f1)))
+print("std(precision)= %.4f, std(recall)= %.4f, std(f1_score)= %.4f"
+      % ( np.std(all_precision), np.std(all_recall), np.std(all_f1)))
+"""
