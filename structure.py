@@ -32,6 +32,16 @@ def draw_neural_net(ax, left, right, bottom, top, layer_sizes):
         for m in xrange(layer_size):
             circle = plt.Circle((n * h_spacing + left, layer_top - m * v_spacing), v_spacing / 4.,
                                 color='w', ec='k', zorder=4)
+            # Add texts
+            if n == 0:
+                plt.text(left - 0.125, layer_top - m * v_spacing, r'$X_{' + str(m + 1) + '}$', fontsize=15)
+            elif (n_layers == 3) & (n == 1):
+                plt.text(n * h_spacing + left + 0.00,
+                         layer_top - m * v_spacing + (v_spacing / 8. + 0.01 * v_spacing),
+                         r'$H_{' + str(m + 1) + '}$', fontsize=15)
+            elif n == n_layers - 1:
+                plt.text(n * h_spacing + left + 0.10, layer_top - m * v_spacing, r'$Y_{' + str(m + 1) + '}$',
+                         fontsize=15)
             ax.add_artist(circle)
     # Edges
     for n, (layer_size_a, layer_size_b) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
@@ -41,7 +51,11 @@ def draw_neural_net(ax, left, right, bottom, top, layer_sizes):
             for o in xrange(layer_size_b):
                 line = plt.Line2D([n * h_spacing + left, (n + 1) * h_spacing + left],
                                   [layer_top_a - m * v_spacing, layer_top_b - o * v_spacing], c='k')
+
                 ax.add_artist(line)
 
 fig = plt.figure(figsize=(12, 12))
-draw_neural_net(fig.gca(), .1, .9, .1, .9, [4, 7, 2])
+ax = fig.gca()
+draw_neural_net(fig.gca(), .1, .9, .1, .9, [4, 5, 3])
+ax.axis('off')
+plt.show()

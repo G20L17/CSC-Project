@@ -108,9 +108,9 @@ sess.run(init)
 J0s = 0.00
 J1s = 10.00
 epoch=1
-tolerance=1e-10
+tolerance=1e-9
 batch_size=10000
-while tolerance <= abs(J0s - J1s) and epoch<5000:
+while tolerance <= abs(J0s - J1s) and epoch<2500:
     J0s=J1s
     for i in range(len(train_X)/batch_size+1):
         sess.run(updates_s,feed_dict={X:train_X[batch_size*i:batch_size*(i+1)],
@@ -144,9 +144,9 @@ train_t=Threshold(train_Y, train_score).reshape((train_X.shape[0], t_size))
 J0t=0.00
 J1t=10.00
 epoch=1
-tolerance=1e-12
+tolerance=1e-11
 batch_size=10000
-while abs(J1t-J0t)>=tolerance and epoch<5000:
+while abs(J1t-J0t)>=tolerance and epoch<200:
     J0t=J1t
     for i in range(len(train_X)/batch_size+1):
         sess.run(updates_t,feed_dict={S:train_score[batch_size*i:batch_size*(i+1)],
