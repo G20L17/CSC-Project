@@ -42,6 +42,7 @@ def Threshold(y_true, score):
             if f1t_j>=f1t:
                 f1t=f1t_j
                 thresh[i]=t_candidate[j]
+        print(thresh[i])
     return thresh
 
 
@@ -56,8 +57,8 @@ def Predict(xscore, threshold):
 
 
 path='/home/machinelearningstation/PycharmProjects/CSC project'
-df=pd.read_table(path+'/data/delicious.dat', delimiter=',', header=None, skiprows=1487)
-label_num=983
+df=pd.read_table(path+'/data/enron.dat', delimiter=',', header=None, skiprows=1058)
+label_num=53
 all_precision=[]
 all_recall=[]
 all_f1=[]
@@ -72,11 +73,11 @@ print('Y shape: '+str(target.shape))
 all_X=data
 
 all_Y=pd.DataFrame.as_matrix(target)
-train_size=0.7
+train_size=0.6
 train_X, test_X, train_Y, test_Y = train_test_split(all_X, all_Y, test_size=1-train_size, random_state=RANDOM_SEED)
 
 x_size=train_X.shape[1]
-h_size=1024
+h_size=2048
 y_size=train_Y.shape[1]
 t_size=1
 
@@ -108,13 +109,10 @@ sess.run(init)
 J0s = 0.00
 J1s = 10.00
 epoch=1
-tolerance=1e-9
-batch_size=10000
-while tolerance <= abs(J0s - J1s) and epoch<2500:
+tolerance=1e-8
+while tolerance <= abs(J0s - J1s) and epoch<5000:
     J0s=J1s
-    for i in range(len(train_X)/batch_size+1):
-        sess.run(updates_s,feed_dict={X:train_X[batch_size*i:batch_size*(i+1)],
-                                      Y:train_Y[batch_size*i:batch_size*(i+1)]})
+    sess.run(updates_s,feed_dict={X:train_X,Y:train_Y})
 
     J1s=sess.run(cost_s, feed_dict={X:train_X,Y:train_Y})
     epoch += 1
@@ -129,47 +127,23 @@ for i in range(len(train_X)/batch_size):
 train_yhat[(len(train_X)/batch_size+1)*batch_size:]=sess.run(yhat, feed_dict={X: train_X[(len(train_X)/batch_size+1)*batch_size:],
                                           Y: train_Y[(len(train_X)/batch_size+1)*batch_size:]})
 '''
-indx=0
-train_score=np.zeros((len(train_X),y_size))
-while indx<len(train_X):
-    train_score[indx:indx+batch_size]=sess.run(score, feed_dict={X: train_X[indx:indx+batch_size],
-                                                               Y: train_Y[indx:indx+batch_size]})
-    indx+=batch_size
 
-
-print(train_score)
-
+train_score=sess.run(score, feed_dict={X: train_X, Y: train_Y})
 train_t=Threshold(train_Y, train_score).reshape((train_X.shape[0], t_size))
 
 J0t=0.00
 J1t=10.00
 epoch=1
-tolerance=1e-11
-batch_size=10000
-while abs(J1t-J0t)>=tolerance and epoch<200:
+tolerance=1e-14
+while tolerance <= abs(J0t - J1t) and epoch<1500:
     J0t=J1t
-    for i in range(len(train_X)/batch_size+1):
-        sess.run(updates_t,feed_dict={S:train_score[batch_size*i:batch_size*(i+1)],
-                                      T:train_t[batch_size*i:batch_size*(i+1)]})
+    sess.run(updates_t,feed_dict={S:train_score,T:train_t})
     J1t=sess.run(cost_t, feed_dict={S:train_score,T:train_t})
     epoch += 1
     print('thresh epoch= '+str(epoch)+', partial loss='+str(J1t))
 
 
-test_score=np.zeros((len(test_X),y_size))
-'''''
-for i in range(len(test_X)/batch_size):
-    test_yhat[batch_size*i:batch_size*(i+1)] = sess.run(yhat, feed_dict={X: test_X[batch_size*i:batch_size*(i+1)],
-                                          Y: test_Y[batch_size*i:batch_size*(i+1)]})
-
-test_yhat[(len(test_X)/batch_size+1)*batch_size:]=sess.run(yhat, feed_dict={X: test_X[(len(test_X)/batch_size+1)*batch_size:],
-                                          Y: test_Y[(len(test_X)/batch_size+1)*batch_size:]})
-'''''
-indx=0
-while indx<len(test_X):
-    test_score[indx:indx+batch_size]=sess.run(score, feed_dict={X: test_X[indx:indx+batch_size],
-                                                               Y: test_Y[indx:indx+batch_size]})
-    indx+=batch_size
+test_score=sess.run(score, feed_dict={X: test_X,Y: test_Y})
 
 test_t=sess.run(t, feed_dict={S:test_score})
 y_predict=np.zeros((len(test_score),y_size))
@@ -187,6 +161,7 @@ print(" mi-precision = %.2f%%, mi-recall =%.2f%%, mi-f1_score=%.2f%% "
               % ( 100.* mi_precison, 100.*mi_recall, 100.*mi_f1))
 print(" ma-precision = %.2f%%, ma-recall =%.2f%%, ma-f1_score=%.2f%% "
               % ( 100.* ma_precison, 100.*ma_recall, 100.*ma_f1))
+
 """
 all_precision.append(precison)
 all_recall.append(recall)
