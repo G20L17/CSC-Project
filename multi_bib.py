@@ -20,7 +20,6 @@ def forwardprop(X, w_1, b_1, w_2, b_2, keep_prob):
     yhat=tf.add(tf.matmul(drop_out,w_2), b_2)
     return yhat
 
-
 def forwardprop_score(X, w_1, b_1, w_2, b_2):
     h=tf.nn.relu(tf.add(tf.matmul(X,w_1), b_1))
     yhat=tf.nn.sigmoid(tf.add(tf.matmul(h,w_2), b_2))
@@ -35,7 +34,7 @@ def Tlinear(S, w_t):
 def Threshold(y_true, score):
     nt,lt=score.shape
     thresh=np.zeros(nt)
-    for i in range(3): #range(nt):
+    for i in range(nt): #range(nt):
         f1t = 0
         t_candidate=np.array([0,1])
         t_candidate=np.append(t_candidate, score[i,:])
@@ -56,13 +55,11 @@ def Predict(xscore, threshold):
     return pred
 
 
-
 path='/home/machinelearningstation/PycharmProjects/CSC project'
-df=pd.read_table(path+'/data/delicious.dat', delimiter=',', header=None, skiprows=1487)
-label_num=983
+df=pd.read_table(path+'/data/bibtex.dat', delimiter=',', header=None, skiprows=1999)
+label_num=159
 all_accuracy=[]
 all_mi_auc=[]
-all_ma_auc=[]
 all_sa_auc=[]
 all_mi_precision=[]
 all_ma_precision=[]
@@ -82,18 +79,9 @@ print('Y shape: '+str(target.shape))
 
 all_X=pd.DataFrame.as_matrix(data)
 
-all_Y=pd.DataFrame.as_matrix(target
-                             )
-columns = (all_Y != 0).sum(0)
-rows    = (all_Y != 0).sum(1)
-
-allrows    = (rows == 0).sum(0)
-print(columns)
-print('---------')
-print(allrows)
+all_Y=pd.DataFrame.as_matrix(target)
 #train_size=0.7
 #train_X, test_X, train_Y, test_Y = train_test_split(all_X, all_Y, test_size=1-train_size, random_state=RANDOM_SEED)
-
 kf=KFold(n_splits=5)
 for train, test in kf.split(all_Y):
     train_X, test_X, train_Y, test_Y = all_X[train], all_X[test], all_Y[train], all_Y[test]
@@ -101,9 +89,8 @@ for train, test in kf.split(all_Y):
     print('testX shape: ' + str(test_X.shape))
     print('trainY shape: ' + str(train_Y.shape))
     print('testY shape: ' + str(test_Y.shape))
-
     x_size=train_X.shape[1]
-    h_size=1024
+    h_size=4000
     y_size=train_Y.shape[1]
     t_size=1
 
@@ -111,6 +98,7 @@ for train, test in kf.split(all_Y):
     Y=tf.placeholder("float", shape=[None, y_size], name='Y')
     S=tf.placeholder('float', shape=[None, y_size], name='S')
     T=tf.placeholder('float', shape=[None, t_size], name='T')
+    keep_prob=tf.placeholder(tf.float32)
 
     w_1=init_weights((x_size,h_size), 'w_1')
     b_1=init_weights((1,h_size),'b_1')
@@ -135,51 +123,30 @@ for train, test in kf.split(all_Y):
     J0s = 0.00
     J1s = 10.00
     epoch=1
-    tolerance=1e-10
-    batch_size=10000
-    while tolerance <= abs(J0s - J1s) and epoch<5000:
+    tolerance=1e-14
+    while tolerance <= abs(J0s - J1s) and epoch<10000:
         J0s=J1s
-        for i in range(len(train_X)/batch_size+1):
-            sess.run(updates_s,feed_dict={X:train_X[batch_size*i:batch_size*(i+1)],
-                                      Y:train_Y[batch_size*i:batch_size*(i+1)]})
+        sess.run(updates_s,feed_dict={X:train_X,Y:train_Y})
 
         J1s=sess.run(cost_s, feed_dict={X:train_X,Y:train_Y})
         epoch += 1
         print('score epoch= '+str(epoch)+', partial loss='+str(J1s))
 
-
-    indx=0
-    train_score=np.zeros((len(train_X),y_size))
-    while indx<len(train_X):
-        train_score[indx:indx+batch_size]=sess.run(score, feed_dict={X: train_X[indx:indx+batch_size],
-                                                               Y: train_Y[indx:indx+batch_size]})
-        indx+=batch_size
-
-
+    train_score=sess.run(score, feed_dict={X: train_X, Y: train_Y})
     train_t=Threshold(train_Y, train_score).reshape((train_X.shape[0], t_size))
 
     J0t=0.00
     J1t=10.00
     epoch=1
     tolerance=1e-24
-    batch_size=10000
-    while abs(J1t-J0t)>=tolerance and epoch<5000:
+    while tolerance <= abs(J0t - J1t) and epoch<5000:
         J0t=J1t
-        for i in range(len(train_X)/batch_size+1):
-            sess.run(updates_t,feed_dict={S:train_score[batch_size*i:batch_size*(i+1)],
-                                      T:train_t[batch_size*i:batch_size*(i+1)]})
+        sess.run(updates_t,feed_dict={S:train_score,T:train_t})
         J1t=sess.run(cost_t, feed_dict={S:train_score,T:train_t})
         epoch += 1
         print('thresh epoch= '+str(epoch)+', partial loss='+str(J1t))
 
-
-    test_score=np.zeros((len(test_X),y_size))
-
-    indx=0
-    while indx<len(test_X):
-        test_score[indx:indx+batch_size]=sess.run(score, feed_dict={X: test_X[indx:indx+batch_size],
-                                                               Y: test_Y[indx:indx+batch_size]})
-        indx+=batch_size
+    test_score=sess.run(score, feed_dict={X: test_X,Y: test_Y})
 
     test_t=sess.run(t, feed_dict={S:test_score})
     y_predict=np.zeros((len(test_score),y_size))
@@ -190,7 +157,7 @@ for train, test in kf.split(all_Y):
     accuracy=sklm.accuracy_score(y_true, y_predict)
     mi_auc=sklm.roc_auc_score(y_true, test_score, average='micro')
     #ma_auc=sklm.roc_auc_score(y_true, test_score, average='macro')
-    #sa_auc=sklm.roc_auc_score(y_true, test_score, average='samples')
+    sa_auc=sklm.roc_auc_score(y_true, test_score, average='samples')
     mi_precision=sklm.precision_score(y_true, y_predict, average='micro')
     ma_precision=sklm.precision_score(y_true, y_predict, average='macro')
     sa_precision=sklm.precision_score(y_true, y_predict, average='samples')
@@ -201,8 +168,8 @@ for train, test in kf.split(all_Y):
     ma_f1=sklm.f1_score(y_true, y_predict, average='macro')
     sa_f1=sklm.f1_score(y_true, y_predict, average='samples')
     print(' accuracy = %.2f%% '% (100.*accuracy))
-    print(" mi-auc = %.2f%%, ma-auc =%.2f%%, ma-auc=%.2f%% "
-              % ( 100.* mi_auc, 100.*mi_auc, 100.*mi_auc))
+    print(" mi-auc = %.2f%%, mi-auc =%.2f%%, sa-auc=%.2f%% "
+              % ( 100.* mi_auc, 100.*mi_auc, 100.*sa_auc))
     print(" mi-precision = %.2f%%, mi-recall =%.2f%%, mi-f1_score=%.2f%% "
               % ( 100.* mi_precision, 100.*mi_recall, 100.*mi_f1))
     print(" ma-precision = %.2f%%, ma-recall =%.2f%%, ma-f1_score=%.2f%% "
@@ -211,8 +178,7 @@ for train, test in kf.split(all_Y):
               % ( 100.* sa_precision, 100.*sa_recall, 100.*sa_f1))
     all_accuracy.append(accuracy)
     all_mi_auc.append(mi_auc)
-    #all_ma_auc.append(ma_auc)
-    #all_sa_auc.append(sa_auc)
+    all_sa_auc.append(sa_auc)
     all_mi_precision.append(mi_precision)
     all_ma_precision.append(ma_precision)
     all_sa_precision.append(sa_precision)
@@ -222,6 +188,7 @@ for train, test in kf.split(all_Y):
     all_mi_f1.append(mi_f1)
     all_ma_f1.append(ma_f1)
     all_sa_f1.append(sa_f1)
+
 
 
     sess.close()
@@ -236,10 +203,10 @@ print("std(precision)= %.4f, std(recall)= %.4f, std(f1_score)= %.4f"
 """
 print(' mean(accuracy) = %.2f%% '% (100.*np.mean(all_accuracy)))
 print(' std(accuracy) = %.2f%% '% (100.*np.std(all_accuracy)))
-print(" mean(sa-auc) = %.2f%%, mean(sa-auc)=%.2f%% "
-              % ( 100.* np.mean(all_mi_auc), 100.*np.mean(all_mi_auc)))
+print(" mean(mi-auc) = %.2f%%, mean(sa-auc)=%.2f%% "
+              % ( 100.* np.mean(all_mi_auc), 100.*np.mean(all_sa_auc)))
 print(" std(mi-auc) = %.2f%%, std(sa-auc)=%.2f%% "
-              % ( 100.* np.std(all_mi_auc), 100.*np.std(all_mi_auc)))
+              % ( 100.* np.std(all_mi_auc), 100.*np.std(all_sa_auc)))
 print(" mean(mi-precision) = %.2f%%, mean(mi-recall) =%.2f%%, mean(mi-f1_score)=%.2f%% "
               % ( 100.* np.mean(all_mi_precision), 100.*np.mean(all_mi_recall), 100.*np.mean(all_mi_f1)))
 print(" std(mi-precision) = %.2f%%, std(mi-recall) =%.2f%%, std(mi-f1_score)=%.2f%% "

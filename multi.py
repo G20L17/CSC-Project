@@ -108,9 +108,9 @@ sess.run(init)
 J0s = 0.00
 J1s = 10.00
 epoch=1
-tolerance=1e-8
+tolerance=1e-14
 batch_size=10000
-while tolerance <= abs(J0s - J1s) and epoch<1000:
+while tolerance <= abs(J0s - J1s) and epoch<10000:
     J0s=J1s
     for i in range(len(train_X)/batch_size+1):
         sess.run(updates_s,feed_dict={X:train_X[batch_size*i:batch_size*(i+1)],
@@ -146,7 +146,7 @@ train_t=Threshold(train_Y, train_score).reshape((train_X.shape[0], t_size))
 J0t=0.00
 J1t=10.00
 epoch=1
-tolerance=1e-14
+tolerance=1e-20
 batch_size=10000
 while abs(J1t-J0t)>=tolerance and epoch<1000:
     J0t=J1t
@@ -181,12 +181,16 @@ for i in range(len(test_score)):
     y_predict[i]=Predict(test_score[i], test_t[i])
 y_true = test_Y
 
-precison=sklm.precision_score(y_true, y_predict, average='micro')
-recall=sklm.recall_score(y_true, y_predict, average='micro')
-f1=sklm.f1_score(y_true, y_predict, average='micro')
-
-print(" precision = %.2f%%, recall =%.2f%%, f1_score=%.2f%% "
-              % ( 100.* precison, 100.*recall, 100.*f1))
+mi_precison=sklm.precision_score(y_true, y_predict, average='micro')
+ma_precison=sklm.precision_score(y_true, y_predict, average='macro')
+mi_recall=sklm.recall_score(y_true, y_predict, average='micro')
+ma_recall=sklm.recall_score(y_true, y_predict, average='macro')
+mi_f1=sklm.f1_score(y_true, y_predict, average='micro')
+ma_f1=sklm.f1_score(y_true, y_predict, average='macro')
+print(" mi-precision = %.2f%%, mi-recall =%.2f%%, mi-f1_score=%.2f%% "
+              % ( 100.* mi_precison, 100.*mi_recall, 100.*mi_f1))
+print(" ma-precision = %.2f%%, ma-recall =%.2f%%, ma-f1_score=%.2f%% "
+              % ( 100.* ma_precison, 100.*ma_recall, 100.*ma_f1))
 
 """
 all_precision.append(precison)

@@ -72,11 +72,11 @@ print('Y shape: '+str(target.shape))
 all_X=data
 
 all_Y=pd.DataFrame.as_matrix(target)
-train_size=0.6
+train_size=0.7
 train_X, test_X, train_Y, test_Y = train_test_split(all_X, all_Y, test_size=1-train_size, random_state=RANDOM_SEED)
 
 x_size=train_X.shape[1]
-h_size=2048
+h_size=1000
 y_size=train_Y.shape[1]
 t_size=1
 
@@ -95,11 +95,16 @@ yhat=forwardprop(X, w_1, b_1, w_2, b_2)
 score=forwardprop_score(X, w_1,b_1, w_2,b_2)
 t=Tlinear(S, w_t)
 
-cost_s=tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=yhat))
-cost_t=tf.reduce_mean(tf.pow(Tlinear(S, w_t)-T, 2))
-
-updates_s=tf.train.AdamOptimizer(0.01).minimize(cost_s, name='Adam_LabelScores')
-updates_t=tf.train.AdamOptimizer(0.01).minimize(cost_t, name='Adam_Thresholds')
+with tf.variable_scope("Score_training"):
+    with tf.variable_scope("Score_loss"):
+        cost_s=tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=yhat))
+    with tf.variable_scope("Score_updates"):
+        updates_s = tf.train.AdamOptimizer(0.01).minimize(cost_s, name='Adam_LabelScores')
+with tf.variable_scope("Threshold_training"):
+    with tf.variable_scope("Threshold_loss"):
+        cost_t = tf.reduce_mean(tf.pow(Tlinear(S, w_t) - T, 2))
+    with tf.variable_scope("Threshold_updates"):
+        updates_t = tf.train.AdamOptimizer(0.01).minimize(cost_t, name='Adam_Thresholds')
 
 sess=tf.Session()
 init=tf.global_variables_initializer()
@@ -108,8 +113,8 @@ sess.run(init)
 J0s = 0.00
 J1s = 10.00
 epoch=1
-tolerance=1e-12
-while tolerance <= abs(J0s - J1s) and epoch<15000:
+tolerance=1e-16
+while tolerance <= abs(J0s - J1s) and epoch<40000:
     J0s=J1s
     sess.run(updates_s,feed_dict={X:train_X,Y:train_Y})
 
@@ -133,8 +138,8 @@ train_t=Threshold(train_Y, train_score).reshape((train_X.shape[0], t_size))
 J0t=0.00
 J1t=10.00
 epoch=1
-tolerance=1e-22
-while tolerance <= abs(J0t - J1t) and epoch<2000:
+tolerance=1e-24
+while tolerance <= abs(J0t - J1t) and epoch<5000:
     J0t=J1t
     sess.run(updates_t,feed_dict={S:train_score,T:train_t})
     J1t=sess.run(cost_t, feed_dict={S:train_score,T:train_t})
@@ -150,23 +155,35 @@ for i in range(len(test_score)):
     y_predict[i]=Predict(test_score[i], test_t[i])
 y_true = test_Y
 
+accuracy=sklm.accuracy_score(y_true, y_predict)
+mi_auc=sklm.roc_auc_score(y_true, test_score, average='micro')
+#ma_auc=sklm.roc_auc_score(y_true, test_score, average='macro')
+sa_auc=sklm.roc_auc_score(y_true, test_score, average='samples')
 mi_precison=sklm.precision_score(y_true, y_predict, average='micro')
 ma_precison=sklm.precision_score(y_true, y_predict, average='macro')
+sa_precison=sklm.precision_score(y_true, y_predict, average='samples')
 mi_recall=sklm.recall_score(y_true, y_predict, average='micro')
 ma_recall=sklm.recall_score(y_true, y_predict, average='macro')
+sa_recall=sklm.recall_score(y_true, y_predict, average='samples')
 mi_f1=sklm.f1_score(y_true, y_predict, average='micro')
 ma_f1=sklm.f1_score(y_true, y_predict, average='macro')
+sa_f1=sklm.f1_score(y_true, y_predict, average='samples')
+print(' accuracy = %.2f%% '% (100.*accuracy))
+print(" mi-auc = %.2f%%, mi-auc =%.2f%%, sa-auc=%.2f%% "
+              % ( 100.* mi_auc, 100.*mi_auc, 100.*sa_auc))
 print(" mi-precision = %.2f%%, mi-recall =%.2f%%, mi-f1_score=%.2f%% "
               % ( 100.* mi_precison, 100.*mi_recall, 100.*mi_f1))
 print(" ma-precision = %.2f%%, ma-recall =%.2f%%, ma-f1_score=%.2f%% "
               % ( 100.* ma_precison, 100.*ma_recall, 100.*ma_f1))
-
+print(" sa-precision = %.2f%%, sa-recall =%.2f%%, sa-f1_score=%.2f%% "
+              % ( 100.* sa_precison, 100.*sa_recall, 100.*sa_f1))
 """
 all_precision.append(precison)
 all_recall.append(recall)
 all_f1.append(f1)
 """
-
+writer = tf.summary.FileWriter('logs', sess.graph)
+writer.close()
 sess.close()
 
 print("%s", str(datetime.now()))
