@@ -1,0 +1,61 @@
+ 
+medical
+mean(accuracy) = 40.50% 
+ std(accuracy) = 10.43% 
+ mean(mi-auc) = 96.16%, mean(sa-auc)=97.41% 
+ std(mi-auc) = 1.67%, std(sa-auc)=1.09% 
+ mean(mi-precision) = 16.92%, mean(mi-recall) =85.32%, mean(mi-f1_score)=27.10% 
+ std(mi-precision) = 11.13%, std(mi-recall) =5.75%, std(mi-f1_score)=14.47% 
+ mean(ma-precision) = 11.14%, mean(ma-recall) =44.95%, mean(ma-f1_score)=16.16% 
+ std(ma-precision) = 5.45%, std(ma-recall) =3.69%, std(ma-f1_score)=6.40% 
+ mean(sa-precision) = 58.46%, mean(sa-recall) =86.43%, mean(sa-f1_score)=61.94% 
+ std(sa-precision) = 3.34%, std(sa-recall) =5.53%, std(sa-f1_score)=2.25% 
+
+enron
+ mean(accuracy) = 6.23% 
+ std(accuracy) = 3.58% 
+ mean(mi-auc) = 85.49%, mean(sa-auc)=87.91% 
+ std(mi-auc) = 1.52%, std(sa-auc)=0.86% 
+ mean(mi-precision) = 47.51%, mean(mi-recall) =53.96%, mean(mi-f1_score)=50.18% 
+ std(mi-precision) = 7.20%, std(mi-recall) =2.38%, std(mi-f1_score)=4.65% 
+ mean(ma-precision) = 15.30%, mean(ma-recall) =17.44%, mean(ma-f1_score)=15.29% 
+ std(ma-precision) = 1.92%, std(ma-recall) =2.12%, std(ma-f1_score)=1.32% 
+ mean(sa-precision) = 55.92%, mean(sa-recall) =56.66%, mean(sa-f1_score)=52.31% 
+ std(sa-precision) = 3.87%, std(sa-recall) =1.16%, std(sa-f1_score)=2.39% 
+
+delicious
+accuracy = 0.06% 
+ mi-auc = 81.45%, ma-auc =81.45%, ma-auc=81.45% 
+ mi-precision = 3.32%, mi-recall =66.43%, mi-f1_score=6.32% 
+ ma-precision = 2.51%, ma-recall =50.80%, ma-f1_score=4.42% 
+ sa-precision = 16.74%, sa-recall =66.08%, sa-f1_score=19.97% 
+('%s', '2017-11-28 14:04:21.425598')
+ mean(accuracy) = 0.02% 
+ std(accuracy) = 0.02% 
+ mean(sa-auc) = 81.74%, mean(sa-auc)=81.74% 
+ std(mi-auc) = 0.18%, std(sa-auc)=0.18% 
+ mean(mi-precision) = 2.74%, mean(mi-recall) =76.98%, mean(mi-f1_score)=5.29% 
+ std(mi-precision) = 0.31%, std(mi-recall) =6.63%, std(mi-f1_score)=0.57% 
+ mean(ma-precision) = 2.30%, mean(ma-recall) =65.79%, mean(ma-f1_score)=4.12% 
+ std(ma-precision) = 0.12%, std(ma-recall) =9.49%, std(ma-f1_score)=0.17% 
+ mean(sa-precision) = 12.81%, mean(sa-recall) =76.76%, mean(sa-f1_score)=15.96% 
+ std(sa-precision) = 2.47%, std(sa-recall) =6.81%, std(sa-f1_score)=2.46%
+
+bibtex
+accuracy = 3.18% 
+ mi-auc = 81.23%, mi-auc =81.23%, sa-auc=84.11% 
+ mi-precision = 1.61%, mi-recall =81.74%, mi-f1_score=3.16% 
+ ma-precision = 1.60%, ma-recall =79.09%, ma-f1_score=3.08% 
+ sa-precision = 19.33%, sa-recall =86.69%, sa-f1_score=15.10% 
+('%s', '2017-12-04 04:45:39.741351')
+ mean(accuracy) = 9.09% 
+ std(accuracy) = 4.12% 
+ mean(mi-auc) = 81.83%, mean(sa-auc)=84.69% 
+ std(mi-auc) = 0.80%, std(sa-auc)=0.66% 
+ mean(mi-precision) = 2.29%, mean(mi-recall) =65.44%, mean(mi-f1_score)=4.40% 
+ std(mi-precision) = 0.54%, std(mi-recall) =14.24%, std(mi-f1_score)=0.98% 
+ mean(ma-precision) = 2.25%, mean(ma-recall) =60.91%, mean(ma-f1_score)=4.16% 
+ std(ma-precision) = 0.51%, std(ma-recall) =16.19%, std(ma-f1_score)=0.83% 
+ mean(sa-precision) = 23.28%, mean(sa-recall) =65.87%, mean(sa-f1_score)=20.16% 
+ std(sa-precision) = 4.94%, std(sa-recall) =17.65%, std(sa-f1_score)=4.43% 
+
